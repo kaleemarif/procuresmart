@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "ProcureSmart",
   description: "Sahi Jankari, Sahi Samay",
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
