@@ -29,9 +29,9 @@ def ceda_test():
 
     try:
         response = requests.get(
-            url,
-            headers={"x-api-key": api_key},
-            timeout=20,
+    url,
+    headers={"Authorization": f"Bearer daf8bd13c79b5f4a2b67375908d1fea49fb94665b95baaa67b9aea5a734677cb"},
+    timeout=20,
         )
 
         return {
