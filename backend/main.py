@@ -35,9 +35,10 @@ def ceda_test():
         )
 
         return {
-            "status_code": response.status_code,
-            "success": response.ok,
-            "response": response.json(),
+    "status_code": response.status_code,
+    "success": response.ok,
+    "content_type": response.headers.get("content-type"),
+    "response": response.text,
         }
 
     except requests.RequestException as exc:
