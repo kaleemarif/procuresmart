@@ -25,7 +25,7 @@ def ceda_test():
             detail="CEDA_API_KEY is not configured",
         )
 
-    url = "https://api.ceda.ashoka.edu.in/v1/agmarknet/commodities"
+    url="https://api.ceda.ashoka.edu.in/v1/agmarknet/commodities"
 
     try:
         response = requests.get(
