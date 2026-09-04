@@ -56,6 +56,8 @@ class RecommendationRequest(BaseModel):
     hour: int = 11
     day_of_week: int = 2
     weather: str = "Clear"
+    farmer_latitude: float | None = None
+    farmer_longitude: float | None = None
 
 
 def get_ceda_api_key():
