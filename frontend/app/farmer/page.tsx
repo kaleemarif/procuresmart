@@ -150,14 +150,14 @@ export default function FarmerPage() {
               }
 
               navigator.geolocation.getCurrentPosition(
-                (position) => {
-                  setLocation(
-                    `${position.coords.latitude.toFixed(
-                      4
-                    )}, ${position.coords.longitude.toFixed(4)}`
-                  );
-                  setScreen("crop");
-                },
+  (position) => {
+    const lat = position.coords.latitude.toFixed(6);
+    const lng = position.coords.longitude.toFixed(6);
+
+    setLocation(`${lat}, ${lng}`);
+    setError("");
+    setScreen("crop");
+  },
                 () => {
                   setError(
                     "Unable to access location. You can continue manually."
