@@ -6,12 +6,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from ml.predict import predict_waiting_time
+from recommendation import recommend_centres
 
 
 app = FastAPI(
     title="ProcureSmart API",
     description="Backend API for the ProcureSmart farmer procurement guidance platform.",
-    version="0.4.0",
+    version="0.5.0",
 )
 
 
@@ -47,6 +48,14 @@ class WaitingTimeRequest(BaseModel):
     centre_id: str
     crop: str
     weather: str
+
+
+class RecommendationRequest(BaseModel):
+    crop: str
+    quantity_quintals: float
+    hour: int = 11
+    day_of_week: int = 2
+    weather: str = "Clear"
 
 
 def get_ceda_api_key():
@@ -92,6 +101,7 @@ def ceda_commodities():
             if exc.response is not None
             else str(exc)
         )
+
         raise HTTPException(
             status_code=status_code,
             detail=detail,
@@ -130,6 +140,7 @@ def ceda_geographies():
             if exc.response is not None
             else str(exc)
         )
+
         raise HTTPException(
             status_code=status_code,
             detail=detail,
@@ -172,6 +183,7 @@ def ceda_markets(payload: dict):
             if exc.response is not None
             else str(exc)
         )
+
         raise HTTPException(
             status_code=status_code,
             detail=detail,
@@ -214,6 +226,7 @@ def ceda_quantities(payload: CEDAQuantitiesRequest):
             if exc.response is not None
             else str(exc)
         )
+
         raise HTTPException(
             status_code=status_code,
             detail=detail,
@@ -232,4 +245,39 @@ def predict_waiting_time_api(request: WaitingTimeRequest):
 
     return {
         "predicted_waiting_time_minutes": prediction
+    }
+
+
+@app.post("/recommend")
+def recommendation_api(request: RecommendationRequest):
+    if request.quantity_quintals <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Quantity must be greater than zero",
+        )
+
+    recommendations = recommend_centres(
+        crop=request.crop,
+        quantity_quintals=request.quantity_quintals,
+        hour=request.hour,
+        day_of_week=request.day_of_week,
+        weather=request.weather,
+    )
+
+    if not recommendations:
+        raise HTTPException(
+            status_code=404,
+            detail="No procurement centres available",
+        )
+
+    return {
+        "recommended_centre": recommendations[0],
+        "alternatives": recommendations[1:],
+        "weights": {
+            "waiting_time": 0.45,
+            "distance": 0.25,
+            "queue": 0.20,
+            "capacity": 0.10,
+        },
+        "data_mode": "synthetic_prototype",
     }
