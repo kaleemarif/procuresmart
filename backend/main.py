@@ -152,3 +152,24 @@ def ceda_quantities(payload: CEDAQuantitiesRequest):
             status_code=502,
             detail=f"CEDA request failed: {str(exc)}",
         )
+ from pydantic import BaseModel
+from ml.predict import predict_waiting_time
+
+class WaitingTimeRequest(BaseModel):
+    quantity_quintals: float
+    queue_length: int
+    active_counters: int
+    avg_processing_time: float
+    capacity_used_pct: float
+    hour: int
+    day_of_week: int
+    centre_id: str
+    crop: str
+    weather: str
+
+@app.post("/ml/predict-waiting-time")
+def predict_waiting_time_api(request: WaitingTimeRequest):
+    prediction = predict_waiting_time(request.model_dump())
+    return {
+        "predicted_waiting_time_minutes": prediction
+    }
