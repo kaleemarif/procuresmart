@@ -11,19 +11,14 @@ export async function checkBackendHealth() {
   return response.json();
 }
 
-export async function predictWaitingTime(input: {
-  quantity_quintals: number;
-  queue_length: number;
-  active_counters: number;
-  avg_processing_time: number;
-  capacity_used_pct: number;
-  hour: number;
-  day_of_week: number;
-  centre_id: string;
+export async function recommendCentres(input: {
   crop: string;
-  weather: string;
+  quantity_quintals: number;
+  hour?: number;
+  day_of_week?: number;
+  weather?: string;
 }) {
-  const response = await fetch(`${API_URL}/ml/predict-waiting-time`, {
+  const response = await fetch(`${API_URL}/recommend`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -32,7 +27,7 @@ export async function predictWaitingTime(input: {
   });
 
   if (!response.ok) {
-    throw new Error("Waiting-time prediction failed");
+    throw new Error("Recommendation request failed");
   }
 
   return response.json();
