@@ -17,6 +17,8 @@ export async function recommendCentres(input: {
   hour?: number;
   day_of_week?: number;
   weather?: string;
+  farmer_latitude?: number;
+  farmer_longitude?: number;
 }) {
   const response = await fetch(`${API_URL}/recommend`, {
     method: "POST",
