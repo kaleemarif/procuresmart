@@ -10,6 +10,8 @@ export default function FarmerPage() {
   const [screen, setScreen] = useState("dashboard");
   const [language, setLanguage] = useState<"EN" | "HI">("EN");
   const [location, setLocation] = useState("");
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
   const [crop, setCrop] = useState("");
   const [quantity, setQuantity] = useState("");
   const [recommendation, setRecommendation] = useState<any>(null);
@@ -36,6 +38,8 @@ export default function FarmerPage() {
         hour: now.getHours(),
         day_of_week: now.getDay(),
         weather: "Clear",
+        farmer_latitude: latitude ?? undefined,
+        farmer_longitude: longitude ?? undefined,
       });
 
       setRecommendation(result);
@@ -150,14 +154,18 @@ export default function FarmerPage() {
               }
 
               navigator.geolocation.getCurrentPosition(
-  (position) => {
-    const lat = position.coords.latitude.toFixed(6);
-    const lng = position.coords.longitude.toFixed(6);
+                (position) => {
+                  const lat = position.coords.latitude;
+                  const lng = position.coords.longitude;
 
-    setLocation(`${lat}, ${lng}`);
-    setError("");
-    setScreen("crop");
-  },
+                  setLatitude(lat);
+                  setLongitude(lng);
+                  setLocation(
+                    `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+                  );
+                  setError("");
+                  setScreen("crop");
+                },
                 () => {
                   setError(
                     "Unable to access location. You can continue manually."
@@ -172,7 +180,11 @@ export default function FarmerPage() {
 
           <input
             value={location}
-            onChange={(e) => setLocation(e.target.value)}
+            onChange={(e) => {
+              setLocation(e.target.value);
+              setLatitude(null);
+              setLongitude(null);
+            }}
             placeholder="Or enter village / town / district"
             className="mt-4 w-full rounded-2xl border bg-white px-5 py-4 outline-none"
           />
@@ -454,4 +466,4 @@ export default function FarmerPage() {
   }
 
   return null;
-                       }
+                    }
