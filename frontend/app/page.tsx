@@ -1,262 +1,172 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { checkBackendHealth, recommendCentres } from "../lib/api";
-
-type Centre = {
-  centre_id: string;
-  centre_name: string;
-  distance_km: number;
-  queue_length: number;
-  active_counters: number;
-  avg_processing_time: number;
-  capacity_used_pct: number;
-  predicted_waiting_time_minutes: number;
-  score: number;
-  rank: number;
-  reason: string;
-};
-
-type RecommendationResult = {
-  recommended_centre: Centre;
-  alternatives: Centre[];
-  weights: {
-    waiting_time: number;
-    distance: number;
-    queue: number;
-    capacity: number;
-  };
-  data_mode: string;
-};
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export default function Home() {
-  const [backendStatus, setBackendStatus] = useState("Checking backend...");
-  const [crop, setCrop] = useState("Wheat");
-  const [quantity, setQuantity] = useState("50");
-  const [recommendation, setRecommendation] =
-    useState<RecommendationResult | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const router = useRouter();
+  const [role, setRole] = useState<"farmer" | "operator">("farmer");
+  const [language, setLanguage] = useState<"en" | "hi">("en");
 
-  useEffect(() => {
-    checkBackendHealth()
-      .then(() => setBackendStatus("Backend connected ✓"))
-      .catch(() => setBackendStatus("Backend unavailable"));
-  }, []);
-
-  async function handleRecommendation() {
-    const quantityValue = Number(quantity);
-
-    if (!quantityValue || quantityValue <= 0) {
-      setError("Please enter a valid quantity.");
-      return;
-    }
-
-    setLoading(true);
-    setError("");
-    setRecommendation(null);
-
-    try {
-      const result = await recommendCentres({
-        crop,
-        quantity_quintals: quantityValue,
-        hour: 11,
-        day_of_week: 2,
-        weather: "Clear",
-      });
-
-      setRecommendation(result);
-    } catch {
-      setError("Unable to find the best centre. Please try again.");
-    } finally {
-      setLoading(false);
+  function continueToApp() {
+    if (role === "farmer") {
+      router.push("/farmer");
+    } else {
+      alert("Operator Dashboard will be available in a later phase.");
     }
   }
 
-  const centre = recommendation?.recommended_centre;
+  const hindi = language === "hi";
 
   return (
-    <main className="min-h-screen bg-gray-50 px-6 py-12">
-      <div className="mx-auto max-w-3xl">
-        <p className="mb-3 text-sm font-medium text-amber-700">
-          ProcureSmart
-        </p>
+    <main className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-emerald-50 px-5 py-6">
+      <div className="mx-auto flex min-h-[calc(100vh-3rem)] max-w-md flex-col justify-between">
 
-        <h1 className="text-4xl font-bold text-slate-900">
-          Sahi Jankari, Sahi Samay
-        </h1>
+        <div>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold tracking-wide text-emerald-700">
+                ProcureSmart
+              </p>
+              <p className="mt-1 text-xs text-slate-500">
+                Sahi Jankari, Sahi Samay
+              </p>
+            </div>
 
-        <p className="mt-4 text-lg text-gray-600">
-          Know where to go and when to go for crop procurement.
-        </p>
+            <div className="flex rounded-full border border-slate-200 bg-white p-1 shadow-sm">
+              <button
+                onClick={() => setLanguage("en")}
+                className={`rounded-full px-3 py-1 text-xs font-medium ${
+                  language === "en"
+                    ? "bg-slate-900 text-white"
+                    : "text-slate-600"
+                }`}
+              >
+                EN
+              </button>
 
-        <div className="mt-6 rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-700">
-          {backendStatus}
-        </div>
-
-        <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-semibold text-slate-900">
-            Tell us about your crop
-          </h2>
-
-          <div className="mt-5">
-            <label className="mb-2 block text-sm font-medium text-slate-700">
-              Crop
-            </label>
-
-            <select
-              value={crop}
-              onChange={(e) => setCrop(e.target.value)}
-              className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-slate-900 outline-none focus:border-slate-500"
-            >
-              <option>Wheat</option>
-              <option>Soybean</option>
-              <option>Rice</option>
-              <option>Gram</option>
-              <option>Maize</option>
-            </select>
+              <button
+                onClick={() => setLanguage("hi")}
+                className={`rounded-full px-3 py-1 text-xs font-medium ${
+                  language === "hi"
+                    ? "bg-slate-900 text-white"
+                    : "text-slate-600"
+                }`}
+              >
+                हिंदी
+              </button>
+            </div>
           </div>
 
-          <div className="mt-5">
-            <label className="mb-2 block text-sm font-medium text-slate-700">
-              Quantity (quintals)
-            </label>
+          <div className="mt-14 text-center">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-emerald-100 text-4xl shadow-sm">
+              🌾
+            </div>
 
-            <input
-              type="number"
-              min="1"
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-              className="w-full rounded-xl border border-gray-300 px-4 py-3 text-slate-900 outline-none focus:border-slate-500"
-              placeholder="Enter quantity"
-            />
+            <h1 className="mt-6 text-4xl font-bold tracking-tight text-slate-900">
+              ProcureSmart
+            </h1>
+
+            <p className="mt-3 text-lg font-medium text-emerald-700">
+              {hindi ? "सही जानकारी, सही समय" : "Sahi Jankari, Sahi Samay"}
+            </p>
+
+            <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-slate-600">
+              {hindi
+                ? "फसल खरीद के लिए सही केंद्र चुनें और बेहतर समय पर जाएँ।"
+                : "Find the right procurement centre and know when to go."}
+            </p>
           </div>
 
-          <button
-            onClick={handleRecommendation}
-            disabled={loading || !quantity}
-            className="mt-6 w-full rounded-xl bg-slate-900 px-6 py-3 font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {loading ? "Finding best centre..." : "Find Best Centre"}
-          </button>
+          <div className="mt-10 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setRole("farmer")}
+                className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                  role === "farmer"
+                    ? "bg-emerald-600 text-white shadow-sm"
+                    : "text-slate-600"
+                }`}
+              >
+                🌾 {hindi ? "किसान" : "Farmer"}
+              </button>
 
-          {error && (
-            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-              {error}
+              <button
+                onClick={() => setRole("operator")}
+                className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                  role === "operator"
+                    ? "bg-slate-900 text-white shadow-sm"
+                    : "text-slate-600"
+                }`}
+              >
+                🧑‍💼 {hindi ? "ऑपरेटर" : "Operator"}
+              </button>
             </div>
-          )}
+          </div>
 
-          {centre && (
-            <div className="mt-6">
-              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-emerald-700">
-                      Recommended Centre
-                    </p>
+          <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-bold text-slate-900">
+              {role === "farmer"
+                ? hindi
+                  ? "किसान प्रवेश"
+                  : "Farmer Entry"
+                : hindi
+                ? "ऑपरेटर प्रवेश"
+                : "Operator Entry"}
+            </h2>
 
-                    <h3 className="mt-1 text-2xl font-bold text-slate-900">
-                      {centre.centre_name}
-                    </h3>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              {role === "farmer"
+                ? hindi
+                  ? "अपनी फसल की खरीद के लिए सही केंद्र खोजें।"
+                  : "Find the best procurement centre for your crop."
+                : hindi
+                ? "केंद्र की गतिविधियों और संचालन को प्रबंधित करें।"
+                : "Manage procurement-centre operations and activities."}
+            </p>
 
-                    <p className="mt-1 text-sm text-slate-600">
-                      {centre.centre_id}
-                    </p>
-                  </div>
+            {role === "farmer" && (
+              <div className="mt-5 space-y-3">
+                <input
+                  type="tel"
+                  placeholder={hindi ? "मोबाइल नंबर" : "Mobile number"}
+                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 outline-none focus:border-emerald-500"
+                />
 
-                  <div className="rounded-full bg-emerald-600 px-3 py-1 text-xs font-semibold text-white">
-                    #{centre.rank}
-                  </div>
-                </div>
+                <button
+                  onClick={continueToApp}
+                  className="w-full rounded-xl bg-emerald-600 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                >
+                  {hindi ? "जारी रखें" : "Continue as Farmer"} →
+                </button>
 
-                <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  <div className="rounded-xl bg-white p-3">
-                    <p className="text-xs text-gray-500">Est. Wait</p>
-                    <p className="mt-1 text-lg font-bold text-slate-900">
-                      {centre.predicted_waiting_time_minutes} min
-                    </p>
-                  </div>
-
-                  <div className="rounded-xl bg-white p-3">
-                    <p className="text-xs text-gray-500">Distance</p>
-                    <p className="mt-1 text-lg font-bold text-slate-900">
-                      {centre.distance_km} km
-                    </p>
-                  </div>
-
-                  <div className="rounded-xl bg-white p-3">
-                    <p className="text-xs text-gray-500">Queue</p>
-                    <p className="mt-1 text-lg font-bold text-slate-900">
-                      {centre.queue_length}
-                    </p>
-                  </div>
-
-                  <div className="rounded-xl bg-white p-3">
-                    <p className="text-xs text-gray-500">Score</p>
-                    <p className="mt-1 text-lg font-bold text-slate-900">
-                      {centre.score}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-4 rounded-xl bg-white p-4">
-                  <p className="text-sm font-semibold text-slate-900">
-                    Why this centre?
-                  </p>
-
-                  <p className="mt-1 text-sm text-slate-600">
-                    {centre.reason}
-                  </p>
-                </div>
+                <button
+                  onClick={continueToApp}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  {hindi
+                    ? "प्रोटोटाइप के रूप में जारी रखें"
+                    : "Continue as Guest — Prototype"}
+                </button>
               </div>
+            )}
 
-              {recommendation.alternatives.length > 0 && (
-                <div className="mt-6">
-                  <h3 className="text-lg font-semibold text-slate-900">
-                    Other Nearby Options
-                  </h3>
-
-                  <div className="mt-3 space-y-3">
-                    {recommendation.alternatives.slice(0, 3).map((item) => (
-                      <div
-                        key={item.centre_id}
-                        className="rounded-xl border border-gray-200 bg-white p-4"
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <p className="font-semibold text-slate-900">
-                              {item.centre_name}
-                            </p>
-
-                            <p className="mt-1 text-sm text-slate-500">
-                              {item.predicted_waiting_time_minutes} min wait
-                              {" • "}
-                              {item.distance_km} km
-                            </p>
-                          </div>
-
-                          <span className="text-sm font-semibold text-slate-500">
-                            #{item.rank}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800">
-                Prototype note: centre operational conditions and predictions
-                currently use synthetic prototype data.
-              </div>
-            </div>
-          )}
+            {role === "operator" && (
+              <button
+                onClick={continueToApp}
+                className="mt-5 w-full rounded-xl bg-slate-900 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+              >
+                {hindi ? "ऑपरेटर के रूप में जारी रखें" : "Continue as Operator"} →
+              </button>
+            )}
+          </div>
         </div>
 
-        <p className="mt-5 text-xs text-gray-500">
-          Recommendation uses an explainable scoring model based on waiting
-          time, distance, queue and capacity.
-        </p>
+        <div className="mt-8 text-center">
+          <p className="text-xs text-slate-400">
+            Smart India Hackathon 2026 • ProcureSmart Prototype
+          </p>
+        </div>
       </div>
     </main>
   );
