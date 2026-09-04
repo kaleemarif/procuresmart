@@ -8,6 +8,8 @@ Predict the expected waiting time at a procurement centre.
 
 The current prototype uses a synthetic training dataset.
 
+---
+
 ## Model
 
 Current model:
@@ -15,10 +17,13 @@ Current model:
 - Random Forest Regressor
 - 200 estimators
 - Random state: 42
+- 80/20 train-test split
+
+---
 
 ## Features
 
-### Numeric
+### Numeric Features
 
 - quantity_quintals
 - queue_length
@@ -28,7 +33,7 @@ Current model:
 - hour
 - day_of_week
 
-### Categorical
+### Categorical Features
 
 - centre_id
 - crop
@@ -38,11 +43,31 @@ Current model:
 
 - waiting_time
 
-## Training
+The target represents the expected waiting time in minutes.
 
-The training script accepts a CSV file.
+---
 
-Example:
+## Dataset
 
-```bash
-python -m ml.train --data /path/to/synthetic_training_records_import.csv
+Current training dataset:
+
+- Dataset version: `synthetic_prototype_v1`
+- Records: 20,000
+- Purpose: prototype model training and validation
+
+The synthetic dataset is stored separately from production procurement data.
+
+---
+
+## Preprocessing
+
+Numeric features are passed through unchanged.
+
+Categorical features are converted using One-Hot Encoding.
+
+The preprocessing and model are stored together inside a single scikit-learn Pipeline.
+
+Unknown categorical values are handled safely using:
+
+```python
+handle_unknown="ignore"
