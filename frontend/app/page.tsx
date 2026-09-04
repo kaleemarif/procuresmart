@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { recommendCentres } from "../../lib/api";
+import { recommendCentres } from "../lib/api";
 
 type Centre = {
   centre_id: string;
