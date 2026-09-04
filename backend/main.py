@@ -2,6 +2,7 @@ import os
 
 import requests
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from ml.predict import predict_waiting_time
@@ -11,6 +12,18 @@ app = FastAPI(
     title="ProcureSmart API",
     description="Backend API for the ProcureSmart farmer procurement guidance platform.",
     version="0.4.0",
+)
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://procuresmart-rho.vercel.app",
+        "http://localhost:3000",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -69,9 +82,20 @@ def ceda_commodities():
         return response.json()
 
     except requests.HTTPError as exc:
-        status_code = exc.response.status_code if exc.response is not None else 502
-        detail = exc.response.text if exc.response is not None else str(exc)
-        raise HTTPException(status_code=status_code, detail=detail)
+        status_code = (
+            exc.response.status_code
+            if exc.response is not None
+            else 502
+        )
+        detail = (
+            exc.response.text
+            if exc.response is not None
+            else str(exc)
+        )
+        raise HTTPException(
+            status_code=status_code,
+            detail=detail,
+        )
 
     except (requests.RequestException, ValueError) as exc:
         raise HTTPException(
@@ -96,9 +120,20 @@ def ceda_geographies():
         return response.json()
 
     except requests.HTTPError as exc:
-        status_code = exc.response.status_code if exc.response is not None else 502
-        detail = exc.response.text if exc.response is not None else str(exc)
-        raise HTTPException(status_code=status_code, detail=detail)
+        status_code = (
+            exc.response.status_code
+            if exc.response is not None
+            else 502
+        )
+        detail = (
+            exc.response.text
+            if exc.response is not None
+            else str(exc)
+        )
+        raise HTTPException(
+            status_code=status_code,
+            detail=detail,
+        )
 
     except (requests.RequestException, ValueError) as exc:
         raise HTTPException(
@@ -127,9 +162,20 @@ def ceda_markets(payload: dict):
         return response.json()
 
     except requests.HTTPError as exc:
-        status_code = exc.response.status_code if exc.response is not None else 502
-        detail = exc.response.text if exc.response is not None else str(exc)
-        raise HTTPException(status_code=status_code, detail=detail)
+        status_code = (
+            exc.response.status_code
+            if exc.response is not None
+            else 502
+        )
+        detail = (
+            exc.response.text
+            if exc.response is not None
+            else str(exc)
+        )
+        raise HTTPException(
+            status_code=status_code,
+            detail=detail,
+        )
 
     except (requests.RequestException, ValueError) as exc:
         raise HTTPException(
@@ -158,9 +204,20 @@ def ceda_quantities(payload: CEDAQuantitiesRequest):
         return response.json()
 
     except requests.HTTPError as exc:
-        status_code = exc.response.status_code if exc.response is not None else 502
-        detail = exc.response.text if exc.response is not None else str(exc)
-        raise HTTPException(status_code=status_code, detail=detail)
+        status_code = (
+            exc.response.status_code
+            if exc.response is not None
+            else 502
+        )
+        detail = (
+            exc.response.text
+            if exc.response is not None
+            else str(exc)
+        )
+        raise HTTPException(
+            status_code=status_code,
+            detail=detail,
+        )
 
     except (requests.RequestException, ValueError) as exc:
         raise HTTPException(
