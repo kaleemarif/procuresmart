@@ -187,7 +187,7 @@ def ceda_markets(payload: dict):
         )
 
         raise HTTPException(
-            status_code=status_code,
+            status_code=502,
             detail=detail,
         )
 
@@ -230,7 +230,7 @@ def ceda_quantities(payload: CEDAQuantitiesRequest):
         )
 
         raise HTTPException(
-            status_code=status_code,
+            status_code=502,
             detail=detail,
         )
 
@@ -258,12 +258,23 @@ def recommendation_api(request: RecommendationRequest):
             detail="Quantity must be greater than zero",
         )
 
+    if (
+        (request.farmer_latitude is None)
+        != (request.farmer_longitude is None)
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Both farmer latitude and longitude are required together",
+        )
+
     recommendations = recommend_centres(
         crop=request.crop,
         quantity_quintals=request.quantity_quintals,
         hour=request.hour,
         day_of_week=request.day_of_week,
         weather=request.weather,
+        farmer_latitude=request.farmer_latitude,
+        farmer_longitude=request.farmer_longitude,
     )
 
     if not recommendations:
