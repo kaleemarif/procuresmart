@@ -18,11 +18,8 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://procuresmart-rho.vercel.app",
-        "http://localhost:3000",
-    ],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -293,4 +290,4 @@ def recommendation_api(request: RecommendationRequest):
             "capacity": 0.10,
         },
         "data_mode": "synthetic_prototype",
-    }
+        }
