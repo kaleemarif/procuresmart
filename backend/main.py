@@ -13,7 +13,7 @@ from recommendation import DEMO_CENTRES, recommend_centres
 app = FastAPI(
     title="ProcureSmart API",
     description="Backend API for the ProcureSmart farmer procurement guidance platform.",
-    version="0.6.0",
+    version="0.7.0",
 )
 
 
@@ -24,7 +24,10 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        # Production
+        # Production / main Vercel deployment
+        "https://procuresmart-kaleemarif7610-2693s-projects.vercel.app",
+
+        # Existing production alias
         "https://procuresmart-rho.vercel.app",
 
         # ui-refinement branch preview
@@ -87,6 +90,32 @@ class CentreStateUpdateRequest(BaseModel):
 
 
 # -------------------------------------------------------------------
+# SUPABASE CONFIGURATION
+# -------------------------------------------------------------------
+
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+
+
+def supabase_headers():
+    if not SUPABASE_KEY:
+        return {}
+
+    return {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json",
+    }
+
+
+def supabase_enabled():
+    return bool(
+        SUPABASE_URL
+        and SUPABASE_KEY
+    )
+
+
+# -------------------------------------------------------------------
 # CEDA API KEY
 # -------------------------------------------------------------------
 
@@ -112,11 +141,12 @@ VALID_STATUSES = {
     "closed",
 }
 
+
 centre_states = {}
 
 
-for centre in DEMO_CENTRES:
-    centre_states[centre["centre_id"]] = {
+def create_demo_state(centre):
+    return {
         "status": "open",
         "active_counters": centre["active_counters"],
         "queue_length": centre["queue_length"],
@@ -125,6 +155,346 @@ for centre in DEMO_CENTRES:
             timezone.utc
         ).isoformat(),
     }
+
+
+def load_centre_states_from_supabase():
+    """
+    Load operator state from Supabase.
+
+    The application uses external centre IDs such as C001, C002...
+    while Supabase centre_state references procurement_centres by UUID.
+    Therefore we first load procurement_centres and build:
+
+        UUID -> C001
+
+    Then we load centre_state and convert it into the structure
+    expected by the recommendation engine.
+    """
+
+    # Start with demo defaults so the API remains usable even if
+    # Supabase is temporarily unavailable.
+    centre_states.clear()
+
+    for centre in DEMO_CENTRES:
+        centre_states[centre["centre_id"]] = create_demo_state(
+            centre
+        )
+
+    if not supabase_enabled():
+        print(
+            "WARNING: SUPABASE_URL/SUPABASE_KEY not configured. "
+            "Using in-memory demo centre state."
+        )
+        return
+
+    try:
+        centres_url = (
+            f"{SUPABASE_URL}/rest/v1/"
+            "procurement_centres"
+        )
+
+        centres_response = requests.get(
+            centres_url,
+            headers=supabase_headers(),
+            params={
+                "select": "id,external_centre_id",
+            },
+            timeout=15,
+        )
+
+        centres_response.raise_for_status()
+
+        centre_rows = centres_response.json()
+
+        uuid_to_external_id = {}
+
+        for row in centre_rows:
+            external_id = row.get(
+                "external_centre_id"
+            )
+
+            centre_uuid = row.get("id")
+
+            if external_id and centre_uuid:
+                uuid_to_external_id[centre_uuid] = (
+                    external_id
+                )
+
+        state_url = (
+            f"{SUPABASE_URL}/rest/v1/"
+            "centre_state"
+        )
+
+        state_response = requests.get(
+            state_url,
+            headers=supabase_headers(),
+            params={
+                "select": (
+                    "id,"
+                    "centre_id,"
+                    "queue_length,"
+                    "active_counters,"
+                    "avg_processing_time,"
+                    "capacity_used_pct,"
+                    "centre_status,"
+                    "last_updated_at"
+                ),
+            },
+            timeout=15,
+        )
+
+        state_response.raise_for_status()
+
+        state_rows = state_response.json()
+
+        loaded_count = 0
+
+        for row in state_rows:
+            centre_uuid = row.get("centre_id")
+
+            external_id = uuid_to_external_id.get(
+                centre_uuid
+            )
+
+            if not external_id:
+                continue
+
+            if external_id not in centre_states:
+                continue
+
+            db_status = row.get(
+                "centre_status",
+                "Open",
+            )
+
+            status = str(
+                db_status
+            ).strip().lower()
+
+            if status not in VALID_STATUSES:
+                status = "open"
+
+            current = centre_states[
+                external_id
+            ]
+
+            current["status"] = status
+
+            if row.get("active_counters") is not None:
+                current["active_counters"] = int(
+                    row["active_counters"]
+                )
+
+            if row.get("queue_length") is not None:
+                current["queue_length"] = int(
+                    row["queue_length"]
+                )
+
+            if row.get("capacity_used_pct") is not None:
+                current["capacity_used_pct"] = float(
+                    row["capacity_used_pct"]
+                )
+
+            if row.get("last_updated_at"):
+                current["updated_at"] = (
+                    row["last_updated_at"]
+                )
+
+            loaded_count += 1
+
+        print(
+            f"Loaded {loaded_count} centre states "
+            "from Supabase."
+        )
+
+    except requests.RequestException as exc:
+        print(
+            "WARNING: Failed to load centre state "
+            f"from Supabase: {exc}"
+        )
+
+    except (ValueError, TypeError) as exc:
+        print(
+            "WARNING: Invalid Supabase centre state "
+            f"data: {exc}"
+        )
+
+
+def get_supabase_centre_uuid(
+    external_centre_id: str,
+):
+    """
+    Find the Supabase procurement_centres UUID
+    corresponding to C001, C002, etc.
+    """
+
+    if not supabase_enabled():
+        return None
+
+    url = (
+        f"{SUPABASE_URL}/rest/v1/"
+        "procurement_centres"
+    )
+
+    try:
+        response = requests.get(
+            url,
+            headers=supabase_headers(),
+            params={
+                "select": "id",
+                "external_centre_id": (
+                    f"eq.{external_centre_id}"
+                ),
+                "limit": "1",
+            },
+            timeout=15,
+        )
+
+        response.raise_for_status()
+
+        rows = response.json()
+
+        if not rows:
+            return None
+
+        return rows[0].get("id")
+
+    except requests.RequestException as exc:
+        print(
+            "Failed to find Supabase centre UUID "
+            f"for {external_centre_id}: {exc}"
+        )
+
+        return None
+
+
+def persist_centre_state(
+    centre_id: str,
+    state: dict,
+):
+    """
+    Persist the operator state to Supabase.
+
+    Database centre_state uses:
+        centre_id
+        queue_length
+        active_counters
+        capacity_used_pct
+        centre_status
+        last_updated_at
+    """
+
+    if not supabase_enabled():
+        return {
+            "persisted": False,
+            "reason": "supabase_not_configured",
+        }
+
+    centre_uuid = get_supabase_centre_uuid(
+        centre_id
+    )
+
+    if not centre_uuid:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                f"Supabase procurement centre "
+                f"{centre_id} was not found"
+            ),
+        )
+
+    url = (
+        f"{SUPABASE_URL}/rest/v1/"
+        "centre_state"
+    )
+
+    status_map = {
+        "open": "Open",
+        "paused": "Paused",
+        "closed": "Closed",
+    }
+
+    payload = {
+        "queue_length": state["queue_length"],
+        "active_counters": state[
+            "active_counters"
+        ],
+        "capacity_used_pct": state[
+            "capacity_used_pct"
+        ],
+        "centre_status": status_map.get(
+            state["status"],
+            "Open",
+        ),
+        "last_updated_at": state[
+            "updated_at"
+        ],
+    }
+
+    try:
+        response = requests.patch(
+            url,
+            headers={
+                **supabase_headers(),
+                "Prefer": "return=representation",
+            },
+            params={
+                "centre_id": (
+                    f"eq.{centre_uuid}"
+                ),
+            },
+            json=payload,
+            timeout=15,
+        )
+
+        response.raise_for_status()
+
+        updated_rows = response.json()
+
+        if not updated_rows:
+            raise HTTPException(
+                status_code=500,
+                detail=(
+                    f"Supabase centre_state row "
+                    f"for {centre_id} was not found"
+                ),
+            )
+
+        return {
+            "persisted": True,
+            "row": updated_rows[0],
+        }
+
+    except requests.HTTPError as exc:
+        detail = (
+            exc.response.text
+            if exc.response is not None
+            else str(exc)
+        )
+
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "Failed to persist centre state "
+                f"to Supabase: {detail}"
+            ),
+        )
+
+    except requests.RequestException as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "Supabase request failed: "
+                f"{str(exc)}"
+            ),
+        )
+
+
+# -------------------------------------------------------------------
+# LOAD INITIAL OPERATOR STATE
+# -------------------------------------------------------------------
+
+load_centre_states_from_supabase()
 
 
 def get_centre_with_live_state(centre):
@@ -172,7 +542,11 @@ def get_operator_centres():
 
     return {
         "centres": centres,
-        "data_mode": "synthetic_prototype",
+        "data_mode": (
+            "supabase_persistent"
+            if supabase_enabled()
+            else "synthetic_prototype"
+        ),
         "updated_at": datetime.now(
             timezone.utc
         ).isoformat(),
@@ -184,7 +558,11 @@ def get_centre_states():
 
     return {
         "centre_states": centre_states,
-        "data_mode": "synthetic_prototype",
+        "data_mode": (
+            "supabase_persistent"
+            if supabase_enabled()
+            else "synthetic_prototype"
+        ),
         "updated_at": datetime.now(
             timezone.utc
         ).isoformat(),
@@ -205,7 +583,9 @@ def update_centre_state(
             detail=f"Centre {centre_id} not found",
         )
 
-    if request.status not in VALID_STATUSES:
+    status = request.status.strip().lower()
+
+    if status not in VALID_STATUSES:
         raise HTTPException(
             status_code=400,
             detail=(
@@ -214,9 +594,11 @@ def update_centre_state(
             ),
         )
 
-    current_state = centre_states[centre_id]
+    current_state = centre_states[
+        centre_id
+    ]
 
-    current_state["status"] = request.status
+    current_state["status"] = status
 
     current_state["active_counters"] = (
         request.active_counters
@@ -236,10 +618,18 @@ def update_centre_state(
         timezone.utc
     ).isoformat()
 
+    persistence = persist_centre_state(
+        centre_id,
+        current_state,
+    )
+
     return {
-        "message": "Centre state updated successfully",
+        "message": (
+            "Centre state updated successfully"
+        ),
         "centre_id": centre_id,
         "state": current_state,
+        "persistence": persistence,
     }
 
 
@@ -250,7 +640,10 @@ def update_centre_state(
 @app.get("/health")
 def health_check():
     return {
-        "status": "ok"
+        "status": "ok",
+        "service": "procuresmart-api",
+        "version": "0.7.0",
+        "supabase_enabled": supabase_enabled(),
     }
 
 
@@ -465,7 +858,7 @@ def ceda_quantities(
         )
 
         raise HTTPException(
-            status_code=502,
+            status_code=status_code,
             detail=detail,
         )
 
@@ -551,5 +944,9 @@ def recommendation_api(
             "queue": 0.20,
             "capacity": 0.10,
         },
-        "data_mode": "synthetic_prototype",
-        }
+        "data_mode": (
+            "supabase_persistent"
+            if supabase_enabled()
+            else "synthetic_prototype"
+        ),
+            }
