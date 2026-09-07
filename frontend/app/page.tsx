@@ -1,127 +1,133 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function HomePage() {
-  const router = useRouter();
-
-  const [language, setLanguage] = useState<"EN" | "HI">("EN");
-  const [mobile, setMobile] = useState("");
-
-  const hindi = language === "HI";
-
-  function continueAsFarmer() {
-    router.push("/farmer");
-  }
-
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="mx-auto flex min-h-screen max-w-5xl items-center justify-center px-5 py-8">
-        <div className="w-full max-w-md">
-          <div className="mb-8 flex items-center justify-between">
+    <main className="min-h-screen bg-[#f5f2ea] text-[#26362e]">
+      <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-5 py-8 lg:px-8">
+        {/* Header */}
+        <header className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#244b3a] text-xl font-bold text-white">
+              P
+            </div>
+
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">
+              <p className="text-lg font-bold tracking-tight">
                 ProcureSmart
+              </p>
+              <p className="text-xs text-[#78817a]">
+                Intelligent Procurement Guidance
+              </p>
+            </div>
+          </div>
+
+          <span className="hidden rounded-full border border-[#d9d4c8] bg-white px-3 py-1.5 text-xs font-semibold text-[#69736c] sm:block">
+            SIH 2026 Prototype
+          </span>
+        </header>
+
+        {/* Main */}
+        <section className="flex flex-1 items-center justify-center py-12">
+          <div className="w-full max-w-4xl">
+            <div className="mb-10 text-center">
+              <p className="mb-3 text-xs font-bold uppercase tracking-[0.22em] text-[#708077]">
+                Welcome to ProcureSmart
+              </p>
+
+              <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+                How would you like to continue?
               </h1>
 
-              <p className="mt-1 text-xs text-slate-500">
-                Sahi Jankari, Sahi Samay
+              <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-[#68736b] sm:text-lg">
+                Choose your role to access the right ProcureSmart experience.
               </p>
             </div>
 
-            <button
-              onClick={() => setLanguage(hindi ? "EN" : "HI")}
-              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold shadow-sm"
-            >
-              {hindi ? "English" : "हिन्दी"}
-            </button>
-          </div>
+            {/* Role cards */}
+            <div className="grid gap-5 md:grid-cols-2">
+              {/* Farmer */}
+              <Link
+                href="/farmer"
+                className="group rounded-3xl border border-[#d9d4c8] bg-white p-7 shadow-[0_10px_35px_rgba(48,59,52,0.06)] transition duration-200 hover:-translate-y-1 hover:border-[#aebfb3] hover:shadow-[0_16px_45px_rgba(48,59,52,0.10)] sm:p-8"
+              >
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#e7efe9] text-3xl">
+                  🌾
+                </div>
 
-          <section className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm sm:p-8">
-            <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 text-2xl">
-              🌾
+                <p className="mt-6 text-xs font-bold uppercase tracking-[0.18em] text-[#718078]">
+                  For Farmers
+                </p>
+
+                <h2 className="mt-2 text-2xl font-bold text-[#26362e]">
+                  Farmer
+                </h2>
+
+                <p className="mt-3 text-sm leading-6 text-[#69736c]">
+                  Get intelligent guidance on which procurement centre to visit
+                  based on waiting time, queue, capacity and distance.
+                </p>
+
+                <div className="mt-7 flex items-center justify-between">
+                  <span className="text-sm font-bold text-[#315542]">
+                    Continue as Farmer
+                  </span>
+
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#244b3a] text-lg text-white transition-transform group-hover:translate-x-1">
+                    →
+                  </span>
+                </div>
+              </Link>
+
+              {/* Operator */}
+              <Link
+                href="/operator/login"
+                className="group rounded-3xl border border-[#d9d4c8] bg-white p-7 shadow-[0_10px_35px_rgba(48,59,52,0.06)] transition duration-200 hover:-translate-y-1 hover:border-[#aebfb3] hover:shadow-[0_16px_45px_rgba(48,59,52,0.10)] sm:p-8"
+              >
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#eeeae1] text-3xl">
+                  🏢
+                </div>
+
+                <p className="mt-6 text-xs font-bold uppercase tracking-[0.18em] text-[#718078]">
+                  For Operations
+                </p>
+
+                <h2 className="mt-2 text-2xl font-bold text-[#26362e]">
+                  Operator
+                </h2>
+
+                <p className="mt-3 text-sm leading-6 text-[#69736c]">
+                  Monitor procurement centres, manage queues, counters,
+                  capacity and operational status in real time.
+                </p>
+
+                <div className="mt-7 flex items-center justify-between">
+                  <span className="text-sm font-bold text-[#315542]">
+                    Operator Login
+                  </span>
+
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#244b3a] text-lg text-white transition-transform group-hover:translate-x-1">
+                    →
+                  </span>
+                </div>
+              </Link>
             </div>
 
-            <p className="text-sm font-semibold text-emerald-700">
-              {hindi ? "किसान प्रवेश" : "Farmer Entry"}
-            </p>
-
-            <h2 className="mt-2 text-3xl font-bold tracking-tight">
-              {hindi
-                ? "सही खरीद केंद्र चुनें"
-                : "Choose the right procurement centre"}
-            </h2>
-
-            <p className="mt-3 text-sm leading-6 text-slate-600">
-              {hindi
-                ? "अपनी फसल और मात्रा की जानकारी देकर बेहतर खरीद केंद्र और अनुमानित प्रतीक्षा समय जानें।"
-                : "Enter your crop and quantity to find a better procurement centre and estimated waiting time."}
-            </p>
-
-            <label className="mt-7 block text-sm font-medium text-slate-700">
-              {hindi ? "मोबाइल नंबर" : "Mobile Number"}
-            </label>
-
-            <input
-              type="tel"
-              inputMode="numeric"
-              value={mobile}
-              onChange={(e) =>
-                setMobile(e.target.value.replace(/\D/g, "").slice(0, 10))
-              }
-              placeholder={
-                hindi ? "10 अंकों का मोबाइल नंबर" : "10-digit mobile number"
-              }
-              className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3.5 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-            />
-
-            <button
-              onClick={continueAsFarmer}
-              className="mt-5 w-full rounded-2xl bg-emerald-600 px-5 py-4 text-sm font-bold text-white transition hover:bg-emerald-700"
-            >
-              {hindi ? "किसान के रूप में जारी रखें" : "Continue as Farmer"} →
-            </button>
-
-            <button
-              onClick={continueAsFarmer}
-              className="mt-3 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-            >
-              {hindi
-                ? "अतिथि के रूप में जारी रखें — प्रोटोटाइप"
-                : "Continue as Guest — Prototype"}
-            </button>
-
-            <div className="my-6 flex items-center gap-3">
-              <div className="h-px flex-1 bg-slate-200" />
-              <span className="text-xs text-slate-400">OR</span>
-              <div className="h-px flex-1 bg-slate-200" />
+            {/* Prototype note */}
+            <div className="mx-auto mt-8 max-w-2xl rounded-2xl border border-[#e0d5b6] bg-[#fffaf0] px-5 py-4 text-center">
+              <p className="text-xs leading-5 text-[#766b4d]">
+                Prototype environment • Centre data is synthetic for the SIH
+                demonstration.
+              </p>
             </div>
-
-            <button
-              onClick={() =>
-                alert(
-                  hindi
-                    ? "Operator Dashboard अगले चरण में जोड़ा जाएगा।"
-                    : "Operator Dashboard will be added in a later phase."
-                )
-              }
-              className="w-full rounded-2xl border border-slate-200 px-5 py-3 text-sm font-medium text-slate-500 hover:bg-slate-50"
-            >
-              {hindi ? "Operator / Centre Login" : "Operator / Centre Login"}
-            </button>
-          </section>
-
-          <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs leading-5 text-amber-800">
-            {hindi
-              ? "प्रोटोटाइप मोड: operational conditions और predictions synthetic data पर आधारित हैं।"
-              : "Prototype mode: operational conditions and predictions currently use synthetic data."}
           </div>
+        </section>
 
-          <p className="mt-6 text-center text-xs text-slate-400">
-            ProcureSmart · Sahi Jankari, Sahi Samay
-          </p>
-        </div>
+        {/* Footer */}
+        <footer className="pt-6 text-center text-xs text-[#8a918b]">
+          ProcureSmart • Smart India Hackathon 2026
+        </footer>
       </div>
     </main>
   );
