@@ -8,12 +8,15 @@
   },
   "dependencies": {
     "@tailwindcss/postcss": "latest",
-    "tailwindcss": "latest",
+    "leaflet": "latest",
     "next": "latest",
     "react": "latest",
-    "react-dom": "latest"
+    "react-dom": "latest",
+    "react-leaflet": "latest",
+    "tailwindcss": "latest"
   },
   "devDependencies": {
+    "@types/leaflet": "latest",
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
