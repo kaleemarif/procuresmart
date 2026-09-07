@@ -41,6 +41,34 @@ type Crop = {
 
 type LocationMode = "gps" | "manual";
 
+type Centre = {
+  centre_id: string;
+  centre_name: string;
+  latitude: number;
+  longitude: number;
+  queue_length: number;
+  active_counters: number;
+  avg_processing_time: number;
+  capacity_used_pct: number;
+  distance_km?: number;
+  predicted_waiting_time_minutes?: number;
+  score?: number;
+  rank?: number;
+  reason?: string;
+};
+
+type RecommendationResponse = {
+  recommended_centre: Centre;
+  alternatives: Centre[];
+  weights?: {
+    waiting_time: number;
+    distance: number;
+    queue: number;
+    capacity: number;
+  };
+  data_mode?: string;
+};
+
 const crops: Crop[] = [
   {
     id: "Wheat",
@@ -254,7 +282,9 @@ export default function FarmerPage() {
     useState(false);
 
   const [recommendation, setRecommendation] =
-    useState<any>(null);
+    useState<RecommendationResponse | null>(
+      null
+    );
 
   const [error, setError] = useState("");
 
@@ -312,7 +342,17 @@ export default function FarmerPage() {
             hour: now.getHours(),
             day_of_week: now.getDay(),
             weather: "Clear",
-            ...(gpsLatitude !== null &&
+
+            /*
+             * Only send GPS coordinates when
+             * GPS mode is actually selected.
+             *
+             * This prevents stale GPS coordinates
+             * from being used after switching to
+             * manual location.
+             */
+            ...(locationMode === "gps" &&
+            gpsLatitude !== null &&
             gpsLongitude !== null
               ? {
                   farmer_latitude:
@@ -359,6 +399,7 @@ export default function FarmerPage() {
     screen,
     crop,
     quantity,
+    locationMode,
     gpsLatitude,
     gpsLongitude,
   ]);
@@ -1136,9 +1177,10 @@ export default function FarmerPage() {
 
               <div className="mt-7 grid grid-cols-2 gap-2 rounded-2xl bg-[#e9eee9] p-1">
                 <button
-                  onClick={() =>
-                    setLocationMode("gps")
-                  }
+                  onClick={() => {
+                    setLocationMode("gps");
+                    setError("");
+                  }}
                   className={`rounded-xl py-3 text-sm font-semibold ${
                     locationMode === "gps"
                       ? "bg-white text-[#24543d] shadow-sm"
@@ -1149,9 +1191,18 @@ export default function FarmerPage() {
                 </button>
 
                 <button
-                  onClick={() =>
-                    setLocationMode("manual")
-                  }
+                  onClick={() => {
+                    setLocationMode("manual");
+
+                    /*
+                     * Clear previously captured GPS
+                     * so manual mode never reuses
+                     * stale coordinates.
+                     */
+                    setGpsLatitude(null);
+                    setGpsLongitude(null);
+                    setError("");
+                  }}
                   className={`rounded-xl py-3 text-sm font-semibold ${
                     locationMode === "manual"
                       ? "bg-white text-[#24543d] shadow-sm"
@@ -1393,7 +1444,8 @@ export default function FarmerPage() {
                       </div>
 
                       <div className="mt-1 text-lg font-bold">
-                        {gpsLatitude !== null &&
+                        {locationMode === "gps" &&
+                        gpsLatitude !== null &&
                         gpsLongitude !== null
                           ? `${centre.distance_km} km`
                           : "—"}
@@ -1480,13 +1532,26 @@ export default function FarmerPage() {
                       []
                     }
                     farmerLatitude={
-                      gpsLatitude
+                      locationMode === "gps"
+                        ? gpsLatitude
+                        : null
                     }
                     farmerLongitude={
-                      gpsLongitude
+                      locationMode === "gps"
+                        ? gpsLongitude
+                        : null
                     }
                   />
                 </div>
+
+                {locationMode === "manual" && (
+                  <div className="mt-4 rounded-2xl border border-[#ded8cb] bg-[#fffaf1] p-4 text-xs leading-5 text-[#80633f]">
+                    Your location was entered manually,
+                    so the map does not show a farmer GPS
+                    marker and distance has not been
+                    calculated.
+                  </div>
+                )}
 
                 <div className="mt-5 grid grid-cols-2 gap-3">
                   <div className="rounded-2xl border border-[#d5ddd6] bg-white p-4">
@@ -1559,7 +1624,8 @@ export default function FarmerPage() {
                       </strong>
                     </div>
 
-                    {gpsLatitude !== null &&
+                    {locationMode === "gps" &&
+                      gpsLatitude !== null &&
                       gpsLongitude !== null && (
                         <div className="flex justify-between gap-4">
                           <span>
@@ -1575,8 +1641,14 @@ export default function FarmerPage() {
                 </div>
 
                 <div className="mt-4 rounded-[24px] border border-[#d5ddd6] bg-white p-5">
-                  <div className="text-xs font-semibold uppercase tracking-[0.12em] text-[#7a857d]">
-                    Prototype location
+                  <div className="flex items-center gap-2">
+                    <span className="h-5 w-5 text-[#24543d]">
+                      <MapIcon />
+                    </span>
+
+                    <div className="text-xs font-semibold uppercase tracking-[0.12em] text-[#7a857d]">
+                      Prototype location
+                    </div>
                   </div>
 
                   <div className="mt-3 text-sm leading-6 text-[#4f5c53]">
@@ -1863,4 +1935,4 @@ export default function FarmerPage() {
       </div>
     </main>
   );
-  }
+        }
