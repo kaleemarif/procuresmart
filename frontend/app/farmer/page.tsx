@@ -1,7 +1,20 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { recommendCentres } from "@/lib/api";
+
+const ProcurementMap = dynamic(
+  () => import("@/components/farmer/ProcurementMap"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-[360px] items-center justify-center rounded-2xl border border-[#d8d2c5] bg-[#e9e5da] text-sm text-[#667169]">
+        Loading map...
+      </div>
+    ),
+  }
+);
 
 type Screen =
   | "entry"
@@ -63,7 +76,12 @@ const crops: Crop[] = [
 
 function ArrowRightIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
       <path d="M5 12h14" />
       <path d="m13 6 6 6-6 6" />
     </svg>
@@ -72,7 +90,12 @@ function ArrowRightIcon() {
 
 function ArrowLeftIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
       <path d="m15 18-6-6 6-6" />
     </svg>
   );
@@ -159,7 +182,12 @@ function ActivityIcon() {
 
 function CheckIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
       <path d="m5 12 4 4L19 6" />
     </svg>
   );
@@ -167,7 +195,12 @@ function CheckIcon() {
 
 function PlusIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
       <path d="M12 5v14M5 12h14" />
     </svg>
   );
@@ -175,7 +208,12 @@ function PlusIcon() {
 
 function MinusIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
       <path d="M5 12h14" />
     </svg>
   );
@@ -200,8 +238,12 @@ export default function FarmerPage() {
     village: "",
   });
 
-  const [gpsLatitude, setGpsLatitude] = useState<number | null>(null);
-  const [gpsLongitude, setGpsLongitude] = useState<number | null>(null);
+  const [gpsLatitude, setGpsLatitude] =
+    useState<number | null>(null);
+
+  const [gpsLongitude, setGpsLongitude] =
+    useState<number | null>(null);
+
   const [gpsLoading, setGpsLoading] = useState(false);
 
   const [recommendation, setRecommendation] =
@@ -209,11 +251,13 @@ export default function FarmerPage() {
 
   const [error, setError] = useState("");
 
-  const [loadingMessage, setLoadingMessage] = useState(
-    "Analysing nearby procurement options..."
-  );
+  const [loadingMessage, setLoadingMessage] =
+    useState(
+      "Analysing nearby procurement options..."
+    );
 
-  const centre = recommendation?.recommended_centre;
+  const centre =
+    recommendation?.recommended_centre;
 
   /*
    * Recommendation request
@@ -257,7 +301,13 @@ export default function FarmerPage() {
           hour: now.getHours(),
           day_of_week: now.getDay(),
           weather: "Clear",
-          ...(gpsLatitude !== null &&
+
+          /*
+           * Send farmer coordinates ONLY
+           * when GPS mode is active.
+           */
+          ...(locationMode === "gps" &&
+          gpsLatitude !== null &&
           gpsLongitude !== null
             ? {
                 farmer_latitude: gpsLatitude,
@@ -301,6 +351,7 @@ export default function FarmerPage() {
     screen,
     crop,
     quantity,
+    locationMode,
     gpsLatitude,
     gpsLongitude,
   ]);
@@ -389,14 +440,17 @@ export default function FarmerPage() {
         setGpsLatitude(
           position.coords.latitude
         );
+
         setGpsLongitude(
           position.coords.longitude
         );
+
         setLocationMode("gps");
         setGpsLoading(false);
       },
       () => {
         setGpsLoading(false);
+
         setError(
           "We could not access your location. Please allow location permission or enter it manually."
         );
@@ -411,8 +465,9 @@ export default function FarmerPage() {
 
   /*
    * Quantity controls
-   * IMPORTANT:
-   * Increment/decrement is now exactly 1 quintal.
+   *
+   * Increment/decrement is exactly
+   * 1 quintal.
    */
   function incrementQuantity() {
     const current = Number(quantity);
@@ -1047,9 +1102,10 @@ export default function FarmerPage() {
 
               <div className="mt-7 grid grid-cols-2 gap-2 rounded-2xl bg-[#e9eee9] p-1">
                 <button
-                  onClick={() =>
-                    setLocationMode("gps")
-                  }
+                  onClick={() => {
+                    setLocationMode("gps");
+                    setError("");
+                  }}
                   className={`rounded-xl py-3 text-sm font-semibold ${
                     locationMode === "gps"
                       ? "bg-white text-[#24543d] shadow-sm"
@@ -1060,9 +1116,12 @@ export default function FarmerPage() {
                 </button>
 
                 <button
-                  onClick={() =>
-                    setLocationMode("manual")
-                  }
+                  onClick={() => {
+                    setLocationMode("manual");
+                    setGpsLatitude(null);
+                    setGpsLongitude(null);
+                    setError("");
+                  }}
                   className={`rounded-xl py-3 text-sm font-semibold ${
                     locationMode === "manual"
                       ? "bg-white text-[#24543d] shadow-sm"
@@ -1092,11 +1151,13 @@ export default function FarmerPage() {
                   </p>
 
                   <button
-                    onClick={
-                      useCurrentLocation
-                    }
+                    onClick={() => {
+                      setLocationMode("gps");
+                      setError("");
+                      useCurrentLocation();
+                    }}
                     disabled={gpsLoading}
-                    className="flex h-13 mt-5 w-full items-center justify-center gap-2 rounded-2xl border border-[#bfcfc2] bg-[#f7faf7] text-sm font-semibold text-[#24543d] disabled:opacity-50"
+                    className="mt-5 flex h-13 w-full items-center justify-center gap-2 rounded-2xl border border-[#bfcfc2] bg-[#f7faf7] text-sm font-semibold text-[#24543d] disabled:opacity-50"
                   >
                     <span className="h-5 w-5">
                       <LocationIcon />
@@ -1104,7 +1165,8 @@ export default function FarmerPage() {
 
                     {gpsLoading
                       ? "Getting location..."
-                      : gpsLatitude !== null
+                      : gpsLatitude !== null &&
+                        gpsLongitude !== null
                       ? "Location captured"
                       : "Use Current Location"}
                   </button>
@@ -1160,9 +1222,7 @@ export default function FarmerPage() {
               )}
 
               <button
-                onClick={
-                  continueFromLocation
-                }
+                onClick={continueFromLocation}
                 className="mt-7 flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-[#1f513a] text-base font-semibold text-white"
               >
                 Find Best Centre
@@ -1295,7 +1355,8 @@ export default function FarmerPage() {
                       </div>
 
                       <div className="mt-1 text-lg font-bold">
-                        {gpsLatitude !== null &&
+                        {locationMode === "gps" &&
+                        gpsLatitude !== null &&
                         gpsLongitude !== null
                           ? `${centre.distance_km} km`
                           : "—"}
@@ -1368,21 +1429,35 @@ export default function FarmerPage() {
                   {centre.centre_name}
                 </h1>
 
-                <div className="mt-6 flex h-[250px] flex-col items-center justify-center rounded-[26px] border border-[#d5ddd6] bg-[#e7ece7] text-center">
-                  <span className="h-10 w-10 text-[#24543d]">
-                    <MapIcon />
-                  </span>
-
-                  <h2 className="mt-4 text-lg font-bold">
-                    Map coming next
-                  </h2>
-
-                  <p className="mt-2 max-w-[260px] text-sm leading-5 text-[#68746c]">
-                    Leaflet + OpenStreetMap will be
-                    connected here for live centre
-                    mapping and navigation.
-                  </p>
+                {/* LIVE PROCUREMENT MAP */}
+                <div className="mt-6">
+                  <ProcurementMap
+                    recommendedCentre={centre}
+                    alternatives={
+                      recommendation?.alternatives ??
+                      []
+                    }
+                    farmerLatitude={
+                      locationMode === "gps"
+                        ? gpsLatitude
+                        : null
+                    }
+                    farmerLongitude={
+                      locationMode === "gps"
+                        ? gpsLongitude
+                        : null
+                    }
+                  />
                 </div>
+
+                {locationMode === "manual" && (
+                  <div className="mt-3 rounded-2xl bg-[#fff7ed] p-4 text-xs leading-5 text-[#8a5b31]">
+                    You entered your location manually,
+                    so the map does not show your GPS
+                    position or calculate
+                    farmer-to-centre distance.
+                  </div>
+                )}
 
                 <div className="mt-5 rounded-[24px] border border-[#d5ddd6] bg-white p-5">
                   <div className="text-xs font-semibold uppercase tracking-[0.12em] text-[#7a857d]">
@@ -1644,4 +1719,4 @@ export default function FarmerPage() {
       </div>
     </main>
   );
-              }
+                }
