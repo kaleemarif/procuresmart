@@ -4,12 +4,11 @@ import { useEffect } from "react";
 import {
   CircleMarker,
   MapContainer,
-  Marker,
   Popup,
   TileLayer,
   useMap,
 } from "react-leaflet";
-import L from "leaflet";
+import type { LatLngBoundsExpression } from "leaflet";
 import "leaflet/dist/leaflet.css";
 
 export type Centre = {
@@ -33,75 +32,6 @@ export type ProcurementMapProps = {
   farmerLongitude?: number | null;
 };
 
-const farmerIcon = L.divIcon({
-  className: "",
-  html: `
-    <div style="
-      width:34px;
-      height:34px;
-      border-radius:50%;
-      background:#24543d;
-      border:4px solid white;
-      box-shadow:0 2px 8px rgba(0,0,0,.25);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      color:white;
-      font-size:15px;
-      font-weight:700;
-    ">F</div>
-  `,
-  iconSize: [34, 34],
-  iconAnchor: [17, 17],
-  popupAnchor: [0, -17],
-});
-
-const recommendedIcon = L.divIcon({
-  className: "",
-  html: `
-    <div style="
-      width:38px;
-      height:38px;
-      border-radius:50%;
-      background:#b26a27;
-      border:4px solid white;
-      box-shadow:0 2px 10px rgba(0,0,0,.3);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      color:white;
-      font-size:18px;
-      font-weight:700;
-    ">★</div>
-  `,
-  iconSize: [38, 38],
-  iconAnchor: [19, 19],
-  popupAnchor: [0, -19],
-});
-
-const centreIcon = L.divIcon({
-  className: "",
-  html: `
-    <div style="
-      width:32px;
-      height:32px;
-      border-radius:50%;
-      background:#3f7d57;
-      border:4px solid white;
-      box-shadow:0 2px 8px rgba(0,0,0,.25);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      color:white;
-      font-size:13px;
-      font-weight:700;
-    ">P</div>
-  `,
-  iconSize: [32, 32],
-  iconAnchor: [16, 16],
-  popupAnchor: [0, -16],
-});
-
 function FitMapBounds({
   recommendedCentre,
   alternatives,
@@ -122,26 +52,34 @@ function FitMapBounds({
       points.push([farmerLatitude, farmerLongitude]);
     }
 
-    points.push([
-      recommendedCentre.latitude,
-      recommendedCentre.longitude,
-    ]);
+    if (recommendedCentre) {
+      points.push([
+        recommendedCentre.latitude,
+        recommendedCentre.longitude,
+      ]);
+    }
 
     alternatives.forEach((centre) => {
-      points.push([
-        centre.latitude,
-        centre.longitude,
-      ]);
+      points.push([centre.latitude, centre.longitude]);
     });
 
-    if (points.length === 1) {
-      map.setView(points[0], 13);
+    if (points.length === 0) {
       return;
     }
 
-    map.fitBounds(points, {
-      padding: [35, 35],
+    if (points.length === 1) {
+      map.setView(points[0], 13, {
+        animate: false,
+      });
+      return;
+    }
+
+    const bounds: LatLngBoundsExpression = points;
+
+    map.fitBounds(bounds, {
+      padding: [40, 40],
       maxZoom: 14,
+      animate: false,
     });
   }, [
     map,
@@ -150,6 +88,36 @@ function FitMapBounds({
     farmerLatitude,
     farmerLongitude,
   ]);
+
+  /*
+   * Leaflet sometimes calculates its container size
+   * before the browser has finished painting the
+   * dynamically mounted component.
+   *
+   * invalidateSize() forces Leaflet to recalculate
+   * the map dimensions after mount.
+   */
+  useEffect(() => {
+    const timers = [
+      window.setTimeout(() => {
+        map.invalidateSize(false);
+      }, 50),
+
+      window.setTimeout(() => {
+        map.invalidateSize(false);
+      }, 250),
+
+      window.setTimeout(() => {
+        map.invalidateSize(false);
+      }, 600),
+    ];
+
+    return () => {
+      timers.forEach((timer) => {
+        window.clearTimeout(timer);
+      });
+    };
+  }, [map]);
 
   return null;
 }
@@ -162,18 +130,16 @@ function CentrePopup({
   recommended?: boolean;
 }) {
   return (
-    <div className="min-w-[210px] text-[#18352a]">
-      <div className="text-sm font-bold">
+    <div className="min-w-[190px]">
+      <div className="text-sm font-bold text-[#18352a]">
+        {recommended ? "Recommended Centre" : "Alternative Centre"}
+      </div>
+
+      <div className="mt-1 text-sm font-semibold text-[#18352a]">
         {centre.centre_name}
       </div>
 
-      {recommended && (
-        <div className="mt-1 text-xs font-semibold text-[#b26a27]">
-          Recommended centre
-        </div>
-      )}
-
-      <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+      <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
         <div>
           <div className="text-[#7a857d]">Waiting</div>
           <div className="font-semibold">
@@ -208,6 +174,7 @@ function CentrePopup({
           <span className="text-[#7a857d]">
             Distance:{" "}
           </span>
+
           <span className="font-semibold">
             {centre.distance_km} km
           </span>
@@ -248,12 +215,15 @@ export default function ProcurementMap({
   ];
 
   return (
-    <div className="relative overflow-hidden rounded-[26px] border border-[#d5ddd6] bg-[#e7ece7]">
+    <div className="relative h-[360px] w-full overflow-hidden rounded-[26px] border border-[#d5ddd6] bg-[#e7ece7]">
       <MapContainer
         center={mapCentre}
         zoom={13}
         scrollWheelZoom={false}
-        className="h-[360px] w-full"
+        dragging={true}
+        doubleClickZoom={true}
+        zoomControl={true}
+        className="!h-full !w-full"
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -267,6 +237,7 @@ export default function ProcurementMap({
           farmerLongitude={farmerLongitude}
         />
 
+        {/* Farmer / You */}
         {hasFarmerLocation && (
           <>
             <CircleMarker
@@ -274,21 +245,13 @@ export default function ProcurementMap({
                 farmerLatitude!,
                 farmerLongitude!,
               ]}
-              radius={18}
+              radius={12}
               pathOptions={{
                 color: "#24543d",
                 fillColor: "#24543d",
-                fillOpacity: 0.12,
-                weight: 2,
+                fillOpacity: 0.2,
+                weight: 3,
               }}
-            />
-
-            <Marker
-              position={[
-                farmerLatitude!,
-                farmerLongitude!,
-              ]}
-              icon={farmerIcon}
             >
               <Popup>
                 <div className="text-sm font-semibold text-[#18352a]">
@@ -300,16 +263,23 @@ export default function ProcurementMap({
                   recommendation.
                 </div>
               </Popup>
-            </Marker>
+            </CircleMarker>
           </>
         )}
 
-        <Marker
-          position={[
+        {/* Recommended Centre */}
+        <CircleMarker
+          center={[
             recommendedCentre.latitude,
             recommendedCentre.longitude,
           ]}
-          icon={recommendedIcon}
+          radius={13}
+          pathOptions={{
+            color: "#8a4f1d",
+            fillColor: "#b26a27",
+            fillOpacity: 0.9,
+            weight: 4,
+          }}
         >
           <Popup>
             <CentrePopup
@@ -317,33 +287,43 @@ export default function ProcurementMap({
               recommended
             />
           </Popup>
-        </Marker>
+        </CircleMarker>
 
+        {/* Alternative Centres */}
         {alternatives.map((centre) => (
-          <Marker
+          <CircleMarker
             key={
               centre.centre_id ??
               `${centre.latitude}-${centre.longitude}`
             }
-            position={[
+            center={[
               centre.latitude,
               centre.longitude,
             ]}
-            icon={centreIcon}
+            radius={10}
+            pathOptions={{
+              color: "#2f6848",
+              fillColor: "#3f7d57",
+              fillOpacity: 0.85,
+              weight: 3,
+            }}
           >
             <Popup>
               <CentrePopup centre={centre} />
             </Popup>
-          </Marker>
+          </CircleMarker>
         ))}
       </MapContainer>
 
+      {/* Map Legend */}
       <div className="absolute bottom-3 left-3 z-[1000] rounded-xl border border-[#d5ddd6] bg-white/95 px-3 py-2 shadow-sm backdrop-blur">
         <div className="flex items-center gap-3 text-[10px] font-semibold text-[#536158]">
-          <div className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-[#24543d]" />
-            You
-          </div>
+          {hasFarmerLocation && (
+            <div className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#24543d]" />
+              You
+            </div>
+          )}
 
           <div className="flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 rounded-full bg-[#b26a27]" />
