@@ -100,7 +100,11 @@ DEMO_CENTRES = [
 ]
 
 
-def normalize(value: float, minimum: float, maximum: float) -> float:
+def normalize(
+    value: float,
+    minimum: float,
+    maximum: float,
+) -> float:
     if maximum == minimum:
         return 1.0
 
@@ -130,7 +134,10 @@ def haversine_distance(
         * math.sin(delta_lon / 2) ** 2
     )
 
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    c = 2 * math.atan2(
+        math.sqrt(a),
+        math.sqrt(1 - a),
+    )
 
     return earth_radius_km * c
 
@@ -143,26 +150,60 @@ def recommend_centres(
     weather: str = "Clear",
     farmer_latitude: float | None = None,
     farmer_longitude: float | None = None,
+    centre_states: dict[str, dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     predictions = []
 
     for centre in DEMO_CENTRES:
+        centre_id = centre["centre_id"]
+
+        state = {}
+
+        if centre_states is not None:
+            state = centre_states.get(centre_id, {})
+
+        status = state.get("status", "open")
+
+        # Closed centres should never be recommended.
+        if status == "closed":
+            continue
+
+        queue_length = state.get(
+            "queue_length",
+            centre["queue_length"],
+        )
+
+        active_counters = state.get(
+            "active_counters",
+            centre["active_counters"],
+        )
+
+        capacity_used_pct = state.get(
+            "capacity_used_pct",
+            centre["capacity_used_pct"],
+        )
+
         prediction = predict_waiting_time(
             {
                 "quantity_quintals": quantity_quintals,
-                "queue_length": centre["queue_length"],
-                "active_counters": centre["active_counters"],
-                "avg_processing_time": centre["avg_processing_time"],
-                "capacity_used_pct": centre["capacity_used_pct"],
+                "queue_length": queue_length,
+                "active_counters": active_counters,
+                "avg_processing_time": centre[
+                    "avg_processing_time"
+                ],
+                "capacity_used_pct": capacity_used_pct,
                 "hour": hour,
                 "day_of_week": day_of_week,
-                "centre_id": centre["centre_id"],
+                "centre_id": centre_id,
                 "crop": crop,
                 "weather": weather,
             }
         )
 
-        if farmer_latitude is not None and farmer_longitude is not None:
+        if (
+            farmer_latitude is not None
+            and farmer_longitude is not None
+        ):
             distance_km = haversine_distance(
                 farmer_latitude,
                 farmer_longitude,
@@ -175,15 +216,40 @@ def recommend_centres(
         predictions.append(
             {
                 **centre,
-                "distance_km": round(distance_km, 2),
+                "status": status,
+                "queue_length": queue_length,
+                "active_counters": active_counters,
+                "capacity_used_pct": capacity_used_pct,
+                "distance_km": round(
+                    distance_km,
+                    2,
+                ),
                 "predicted_waiting_time_minutes": prediction,
             }
         )
 
-    waits = [item["predicted_waiting_time_minutes"] for item in predictions]
-    distances = [item["distance_km"] for item in predictions]
-    queues = [item["queue_length"] for item in predictions]
-    capacities = [item["capacity_used_pct"] for item in predictions]
+    if not predictions:
+        return []
+
+    waits = [
+        item["predicted_waiting_time_minutes"]
+        for item in predictions
+    ]
+
+    distances = [
+        item["distance_km"]
+        for item in predictions
+    ]
+
+    queues = [
+        item["queue_length"]
+        for item in predictions
+    ]
+
+    capacities = [
+        item["capacity_used_pct"]
+        for item in predictions
+    ]
 
     min_wait, max_wait = min(waits), max(waits)
     min_distance, max_distance = min(distances), max(distances)
@@ -198,7 +264,8 @@ def recommend_centres(
         )
 
         distance_score = (
-            1 - normalize(
+            1
+            - normalize(
                 item["distance_km"],
                 min_distance,
                 max_distance,
@@ -226,18 +293,39 @@ def recommend_centres(
             + CAPACITY_WEIGHT * capacity_score
         )
 
-        item["score"] = round(score * 100, 2)
+        # Paused centres remain visible to operators,
+        # but should rank below fully open centres.
+        if item["status"] == "paused":
+            score *= 0.65
 
-    predictions.sort(key=lambda item: item["score"], reverse=True)
+        item["score"] = round(
+            score * 100,
+            2,
+        )
 
-    for rank, item in enumerate(predictions, start=1):
+    predictions.sort(
+        key=lambda item: item["score"],
+        reverse=True,
+    )
+
+    for rank, item in enumerate(
+        predictions,
+        start=1,
+    ):
         item["rank"] = rank
 
-        if rank == 1:
+        if item["status"] == "paused":
+            item["reason"] = (
+                "Centre is currently paused, so its "
+                "recommendation priority is reduced."
+            )
+
+        elif rank == 1:
             item["reason"] = (
                 "Best overall balance of predicted waiting time, "
                 "distance, queue and capacity."
             )
+
         else:
             item["reason"] = (
                 "Alternative option based on the same "
