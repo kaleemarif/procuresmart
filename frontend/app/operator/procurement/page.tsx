@@ -114,14 +114,14 @@ export default function ProcurementPage() {
 
     try {
       const reg = await registerFarmer({
-        name,
-        mobile,
-        village,
-        crop,
-        quantity_quintals: Number(quantity),
-        latitude: lat,
-        longitude: lon,
-      });
+  name,
+  mobile,
+  village,
+  crop,
+  quantity_quintals: Number(quantity),
+  latitude: lat,
+  longitude: lon,
+});
 
       setFarmerId(reg.farmer_id);
       setFarmerCode(reg.farmer_code);
