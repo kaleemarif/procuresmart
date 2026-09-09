@@ -159,6 +159,27 @@ class StatusUpdateRequest(BaseModel):
 
 @router.post("/register")
 def register_farmer(request: FarmerRegistrationRequest):
+    if request.mobile.strip():
+        try:
+            existing = _rest_get(
+                "farmers",
+                {
+                    "select": "*",
+                    "mobile": f"eq.{request.mobile.strip()}",
+                    "limit": "1",
+                },
+            )
+            if existing:
+                farmer = existing[0]
+                return {
+                    "ok": True,
+                    "farmer_id": farmer["id"],
+                    "farmer_code": f"F-{str(farmer['id']).split('-')[0].upper()}",
+                    "farmer": farmer,
+                }
+        except Exception:
+            pass
+
     farmer_id = str(uuid4())
     now = datetime.now(timezone.utc).isoformat()
     payload = {
