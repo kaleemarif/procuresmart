@@ -460,14 +460,20 @@ export default function FarmerPage() {
           crop,
         } as any);
 
-        id = registration.farmer_id;
+        const registeredFarmerId = registration.farmer_id;
 
-        setFarmerId(id);
+if (!registeredFarmerId) {
+  throw new Error("Farmer registration failed.");
+}
 
-        localStorage.setItem(
-          "procuresmart_farmer_id",
-          id,
-        );
+id = registeredFarmerId;
+
+setFarmerId(registeredFarmerId);
+
+localStorage.setItem(
+  "procuresmart_farmer_id",
+  registeredFarmerId,
+);
       }
 
       /*
