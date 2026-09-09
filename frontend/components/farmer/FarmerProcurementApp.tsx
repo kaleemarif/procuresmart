@@ -450,15 +450,16 @@ export default function FarmerPage() {
 
       if (!id) {
         const registration = await registerFarmer({
-          name: mobile
-            ? `Farmer ${mobile.slice(-4)}`
-            : "Demo Farmer",
-          mobile,
-          village: manualLocation.village,
-          latitude: gpsLatitude ?? undefined,
-          longitude: gpsLongitude ?? undefined,
-          crop,
-        } as any);
+  name: mobile
+    ? `Farmer ${mobile.slice(-4)}`
+    : "Demo Farmer",
+  mobile,
+  village: manualLocation.village,
+  latitude: gpsLatitude ?? undefined,
+  longitude: gpsLongitude ?? undefined,
+  crop,
+  quantity_quintals: Number(quantity),
+} as any);
 
         const registeredFarmerId = registration.farmer_id;
 
